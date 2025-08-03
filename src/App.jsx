@@ -183,7 +183,7 @@ export default function App() {
             <button
               onClick={() => { setUser(null); setInput(""); setRepos([]); setReposOpen(false); }}
               aria-label="Close profile"
-              className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 rounded-full border border-transparent hover:border-[hsl(210,16%,88%)] dark:hover:border-[hsl(222,14%,25%)] focus:outline-none focus:ring-2 focus:ring-[hsl(137,65%,47%)] transition bg-transparent"
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 rounded-full border border-transparent hover:border-[hsl(210,16%,88%)] dark:hover:border-[hsl(222,14%,25%)] focus:outline-none focus:ring-2 focus:ring-[hsl(137,65%,47%)] transition bg-transparent z-10"
             >
               <svg
                 className={`w-5 h-5 ${theme === 'dark' ? 'text-[hsl(210,10%,60%)]' : 'text-[hsl(210,10%,40%)]'}`}
