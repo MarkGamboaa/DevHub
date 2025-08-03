@@ -35,6 +35,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [repos, setRepos] = useState([]); // <-- new state
+  const [reposOpen, setReposOpen] = useState(false); // <-- new state
+  const [reposLoading, setReposLoading] = useState(false); // <-- new state
   const cardRef = useRef(null);
 
   // Load last searched user and theme
@@ -72,6 +75,26 @@ export default function App() {
       .finally(() => setLoading(false));
   }, [username]);
 
+  // Fetch repos when user and reposOpen changes
+  useEffect(() => {
+    if (!user || !reposOpen || repos.length > 0) return;
+    setReposLoading(true);
+    fetch(`https://api.github.com/users/${user.login}/repos?sort=updated&per_page=3`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not fetch repos");
+        return res.json();
+      })
+      .then((data) => setRepos(data))
+      .catch(() => setRepos([]))
+      .finally(() => setReposLoading(false));
+  }, [user, reposOpen, repos.length]);
+
+  // Reset repos and close section when user changes
+  useEffect(() => {
+    setRepos([]);
+    setReposOpen(false);
+  }, [user]);
+
   // Theme toggle handler
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
@@ -84,7 +107,12 @@ export default function App() {
   function handleSubmit(e) {
     e.preventDefault();
     if (input.trim()) {
-      setUsername(input.trim());
+      if (input.trim() === username) {
+        setUsername("");
+        setTimeout(() => setUsername(input.trim()), 0);
+      } else {
+        setUsername(input.trim());
+      }
       setError("");
     }
   }
@@ -92,116 +120,201 @@ export default function App() {
   const c = GITHUB_COLORS[theme];
 
   return (
-    <div
-      className={`min-h-screen flex flex-col items-center justify-center ${c.bg} transition-colors duration-300 relative`}
-    >
-      {/* Title and Tagline OUTSIDE the card */}
-      <div className="mb-6 text-center">
-        <div className={`font-extrabold text-3xl sm:text-4xl mb-1 ${theme === 'dark' ? 'text-white' : c.text}`}>DevHub</div>
-        <div className={`text-base sm:text-lg font-medium ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>Find devs. Check stats. Stay curious.</div>
-      </div>
-      {/* Search form and profile output, no card container */}
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-8 w-full max-w-xl">
-        <input
-          type="text"
-          placeholder="Search GitHub username..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          className={`flex-1 px-4 py-2 rounded-lg border ${c.input} ${c.text} ${c.border} focus:outline-none focus:ring-2 focus:ring-[hsl(212,100%,45%)] focus:border-[hsl(212,100%,45%)] transition`}
-          autoFocus
-          aria-label="GitHub username"
+    <div className={`min-h-screen w-full px-4 py-6 sm:px-0 flex flex-col items-center justify-center ${c.bg} transition-colors duration-300 relative`}>
+      {/* Content wrapper, no extra mx-4 */}
+      <div className="w-full flex flex-col items-center">
+        {/* Logo above DevHub title */}
+        <img
+          src={theme === 'dark' ? '/src/assets/logo_dark.png' : '/src/assets/logo_light.png'}
+          alt="DevHub Logo"
+          width={64}
+          height={64}
+          className="mb-2 mx-auto"
+          draggable={false}
         />
-        <button
-          type="submit"
-          className={`px-4 py-2 rounded-lg font-semibold transition
-            ${theme === 'dark'
-              ? 'bg-[hsl(137,65%,55%)] text-[hsl(222,14%,16%)] hover:bg-[hsl(137,65%,50%)]'
-              : 'bg-[hsl(137,65%,47%)] text-white hover:bg-[hsl(137,65%,42%)]'}
-            disabled:opacity-60 disabled:cursor-not-allowed
-          `}
-          disabled={loading || !input.trim()}
-        >
-          Search
-        </button>
-      </form>
-      {/* Loading state */}
-      {loading && (
-        <div className="flex justify-center py-8">
-          <svg className="animate-spin h-8 w-8 text-[hsl(137,65%,47%)] dark:text-[hsl(137,65%,55%)]" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
+        {/* Title and Tagline OUTSIDE the card */}
+        <div className="mb-6 text-center">
+          <div className={`font-extrabold text-3xl sm:text-4xl mb-1 ${theme === 'dark' ? 'text-white' : c.text}`}>DevHub</div>
+          <div className={`text-base sm:text-lg font-medium ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>Find devs. Check stats. Stay curious.</div>
         </div>
-      )}
-      {/* Error state */}
-      {error && (
-        <div className={`text-red-600 dark:text-red-400 text-center mb-4`}>{error}</div>
-      )}
-      {/* User card, no card container */}
-      {user && !loading && (
-        <div
-          ref={cardRef}
-          className={`opacity-0 transition-opacity duration-700 relative flex flex-col sm:flex-row gap-6 items-center sm:items-start mt-2 animate-fade-in w-full max-w-xl border ${c.border} p-6 rounded-xl ${theme === 'dark' ? c.card : 'bg-white'}`}
-          style={{ animation: 'fadeIn 0.7s forwards' }}
-        >
-          {/* Close button */}
-          <button
-            onClick={() => setUser(null)}
-            aria-label="Close profile"
-            className="absolute top-4 right-4 p-2 rounded-full border border-transparent hover:border-[hsl(210,16%,88%)] dark:hover:border-[hsl(222,14%,25%)] focus:outline-none focus:ring-2 focus:ring-[hsl(137,65%,47%)] transition bg-transparent text-xl text-[hsl(210,10%,40%)] dark:text-[hsl(210,10%,60%)]"
-          >
-            &times;
-          </button>
-          <img
-            src={user.avatar_url}
-            alt={user.name || user.login}
-            className="w-28 h-28 rounded-full border border-[hsl(210,16%,88%)] dark:border-[hsl(222,14%,25%)] shadow-md flex-shrink-0 min-w-[7rem] min-h-[7rem] object-cover"
+        {/* Search form and profile output, no card container */}
+        <form onSubmit={handleSubmit} className="flex gap-2 mb-8 w-full max-w-xl">
+          <input
+            type="text"
+            placeholder="Search GitHub username..."
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            className={`flex-1 px-4 py-2 rounded-lg border ${c.input} ${c.text} ${c.border} focus:outline-none focus:ring-2 focus:ring-[hsl(212,100%,45%)] focus:border-[hsl(212,100%,45%)] transition`}
+            autoFocus
+            aria-label="GitHub username"
           />
-          <div className="flex-1 min-w-0 mt-4 sm:mt-0">
-            <div className={`text-2xl font-bold truncate ${theme === 'dark' ? 'text-white' : c.text}`}>{user.name || <span className={c.muted}>No name</span>}</div>
-            <div className={`text-lg font-mono ${theme === 'dark' ? 'text-white' : c.primary} truncate`}>@{user.login}</div>
-            <div className={`mt-2 mb-4 ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>{user.bio || <span className="italic">No bio</span>}</div>
-            <div className="flex flex-wrap gap-4 text-sm mb-2">
-              <div className="flex items-center gap-1">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M12 20.5V3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                <span className={theme === 'dark' ? 'text-white' : ''}>{user.public_repos} <span className={c.muted}>Repos</span></span>
-              </div>
-              <div className="flex items-center gap-1">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
-                <span className={theme === 'dark' ? 'text-white' : ''}>{user.followers} <span className={c.muted}>Followers</span></span>
-              </div>
-              <div className="flex items-center gap-1">
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M7 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="15" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
-                <span className={theme === 'dark' ? 'text-white' : ''}>{user.following} <span className={c.muted}>Following</span></span>
-              </div>
-              {user.location && (
-                <div className="flex items-center gap-1">
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M12 21s-6-5.686-6-10A6 6 0 1112 21z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                  <span className={theme === 'dark' ? 'text-white' : ''}>{user.location}</span>
-                </div>
-              )}
-            </div>
-            <a
-              href={user.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-lg font-semibold shadow-sm transition border focus:outline-none focus:ring-2 focus:ring-[hsl(137,65%,47%)]
-                ${theme === 'dark'
-                  ? 'bg-[hsl(137,65%,55%)] text-[hsl(222,14%,16%)] hover:bg-[hsl(137,65%,50%)] border-[hsl(222,14%,25%)]'
-                  : 'bg-[hsl(137,65%,47%)] text-white hover:bg-[hsl(137,65%,42%)] border-[hsl(210,16%,88%)]'}
-              `}
-              aria-label="View on GitHub"
-            >
-              {/* GitHub logo SVG */}
-              <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true" className="inline-block">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-              </svg>
-              View on GitHub
-            </a>
+          <button
+            type="submit"
+            className={`px-4 py-2 rounded-lg font-semibold transition
+              bg-[#238636] text-white hover:bg-[#196c2e]
+              disabled:opacity-60 disabled:cursor-not-allowed
+            `}
+            disabled={loading || !input.trim()}
+          >
+            Search
+          </button>
+        </form>
+        {/* Loading state */}
+        {loading && (
+          <div className="flex justify-center py-8">
+            <svg className="animate-spin h-8 w-8 text-[hsl(137,65%,47%)] dark:text-[hsl(137,65%,55%)]" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
           </div>
-        </div>
-      )}
-      {/* Dark mode toggle OUTSIDE the card */}
+        )}
+        {/* Error state */}
+        {error && (
+          <div className={`text-red-600 dark:text-red-400 text-center mb-4`}>{error}</div>
+        )}
+        {/* User card, no card container */}
+        {user && !loading && (
+          <div
+            ref={cardRef}
+            className={`opacity-0 transition-opacity duration-700 animate-fade-in w-full sm:max-w-xl border ${c.border} p-6 rounded-xl flex flex-col relative ${theme === 'dark' ? c.card : 'bg-white'}`}
+            style={{ animation: 'fadeIn 0.7s forwards' }}
+          >
+            {/* Close button at top right of card */}
+            <button
+              onClick={() => { setUser(null); setInput(""); setRepos([]); setReposOpen(false); }}
+              aria-label="Close profile"
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 rounded-full border border-transparent hover:border-[hsl(210,16%,88%)] dark:hover:border-[hsl(222,14%,25%)] focus:outline-none focus:ring-2 focus:ring-[hsl(137,65%,47%)] transition bg-transparent"
+            >
+              <svg
+                className={`w-5 h-5 ${theme === 'dark' ? 'text-[hsl(210,10%,60%)]' : 'text-[hsl(210,10%,40%)]'}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            </button>
+            {/* Top: Profile Picture + Info */}
+            <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start w-full">
+              <img
+                src={user.avatar_url}
+                alt={user.name || user.login}
+                className="w-28 h-28 rounded-full border border-[hsl(210,16%,88%)] dark:border-[hsl(222,14%,25%)] shadow-md flex-shrink-0 min-w-[7rem] min-h-[7rem] object-cover"
+              />
+              <div className="flex-1 min-w-0 mt-4 sm:mt-0 w-full relative">
+                <div className={`text-2xl font-bold truncate ${theme === 'dark' ? 'text-white' : c.text}`}>{user.name || <span className={c.muted}>No name</span>}</div>
+                <div className={`text-lg font-mono ${theme === 'dark' ? 'text-white' : c.primary} truncate`}>@{user.login}</div>
+                <div className={`mt-2 mb-4 ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>{user.bio || <span className="italic">No bio</span>}</div>
+                <div className="flex flex-wrap gap-4 text-sm mb-2">
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M12 20.5V3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    <span className="font-semibold">{user.public_repos}</span> <span className={c.muted}>Repos</span>
+                  </div>
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
+                    <span className="font-semibold">{user.followers}</span> <span className={c.muted}>Followers</span>
+                  </div>
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M7 21v-2a4 4 0 014-4h6a4 4 0 014 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="15" cy="7" r="4" stroke="currentColor" strokeWidth="2"/></svg>
+                    <span className="font-semibold">{user.following}</span> <span className={c.muted}>Following</span>
+                  </div>
+                  {user.location && (
+                    <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
+                      {/* Custom location icon */}
+                      <svg viewBox="0 0 32 32" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg" className="inline text-inherit" style={{color: 'currentColor'}}>
+                        <path d="M16.114-0.011c-6.559 0-12.114 5.587-12.114 12.204 0 6.93 6.439 14.017 10.77 18.998 0.017 0.020 0.717 0.797 1.579 0.797h0.076c0.863 0 1.558-0.777 1.575-0.797 4.064-4.672 10-12.377 10-18.998 0-6.618-4.333-12.204-11.886-12.204zM16.515 29.849c-0.035 0.035-0.086 0.074-0.131 0.107-0.046-0.032-0.096-0.072-0.133-0.107l-0.523-0.602c-4.106-4.71-9.729-11.161-9.729-17.055 0-5.532 4.632-10.205 10.114-10.205 6.829 0 9.886 5.125 9.886 10.205 0 4.474-3.192 10.416-9.485 17.657zM16.035 6.044c-3.313 0-6 2.686-6 6s2.687 6 6 6 6-2.687 6-6-2.686-6-6-6zM16.035 16.044c-2.206 0-4.046-1.838-4.046-4.044s1.794-4 4-4c2.207 0 4 1.794 4 4 0.001 2.206-1.747 4.044-3.954 4.044z" fill="currentColor" />
+                      </svg>
+                      <span className="font-semibold">{user.location}</span>
+                    </div>
+                  )}
+                </div>
+                <a
+                  href={user.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-lg font-semibold shadow-sm transition border focus:outline-none focus:ring-2 focus:ring-[#238636]
+                    bg-[#238636] text-white hover:bg-[#196c2e]
+                    ${theme === 'dark' ? 'border-[hsl(222,14%,25%)]' : 'border-[hsl(210,16%,88%)]'}
+                  `}
+                  aria-label="View on GitHub"
+                >
+                  {/* GitHub logo SVG */}
+                  <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true" className="inline-block">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.01.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                  </svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+            {/* Bottom: Recent Repositories */}
+            <div className="w-full mt-6">
+              <hr className={`mb-4 border-t ${theme === 'dark' ? 'border-[hsl(222,14%,25%)]' : 'border-[hsl(210,16%,88%)]'}`} />
+              <div className="mb-2 w-full">
+                <div className="flex items-center justify-between w-full">
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : c.text}`}>Recent Repositories</span>
+                  <button
+                    aria-label={reposOpen ? 'Hide recent repositories' : 'Show recent repositories'}
+                    className={`ml-2 p-1 rounded-full border border-transparent hover:border-[hsl(210,16%,88%)] dark:hover:border-[hsl(222,14%,25%)] focus:outline-none focus:ring-2 focus:ring-[#238636] transition bg-transparent`}
+                    tabIndex={0}
+                    type="button"
+                    onClick={() => setReposOpen((v) => !v)}
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-transform duration-200 ${reposOpen ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-[hsl(210,10%,60%)]' : 'text-[hsl(210,10%,40%)]'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+                {reposOpen && (
+                  <div className="mt-3 w-full">
+                    {reposLoading ? (
+                      <div className="text-sm text-[hsl(210,10%,60%)]">Loading...</div>
+                    ) : repos.length === 0 ? (
+                      <div className="text-sm text-[hsl(210,10%,60%)]">No recent repositories found.</div>
+                    ) : (
+                      <ul className="space-y-2 w-full">
+                        {repos.map((repo, idx) => (
+                          <li key={repo.id} className={`w-full pb-4 ${idx < repos.length - 1 ? 'border-b' : ''} ${theme === 'dark' ? 'border-[hsl(222,14%,25%)]' : 'border-[hsl(210,16%,88%)]'}`}>
+                            <a
+                              href={repo.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-[hsl(212,100%,65%)] hover:underline text-lg"
+                            >
+                              {repo.name}
+                            </a>
+                            {repo.description && (
+                              <div className={`text-sm mt-1 mb-2 ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>{repo.description}</div>
+                            )}
+                            <div className="flex items-center gap-4 text-xs mt-1">
+                              {repo.language && (
+                                <span className="flex items-center gap-1">
+                                  <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: languageColor(repo.language) }}></span>
+                                  <span className={theme === 'dark' ? 'text-[hsl(210,10%,60%)]' : c.muted}>{repo.language}</span>
+                                </span>
+                              )}
+                              <span className={theme === 'dark' ? 'text-[hsl(210,10%,60%)]' : c.muted}>
+                                Updated {formatUpdated(repo.updated_at)}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Dark mode toggle OUTSIDE the content wrapper */}
       <button
         aria-label="Toggle dark mode"
         onClick={toggleTheme}
@@ -219,4 +332,44 @@ export default function App() {
       `}</style>
     </div>
   );
+}
+
+// Helper functions at the bottom:
+function languageColor(lang) {
+  // Simple mapping for demo; GitHub uses more
+  const colors = {
+    JavaScript: '#f1e05a',
+    TypeScript: '#3178c6',
+    HTML: '#e34c26',
+    CSS: '#563d7c',
+    Python: '#3572A5',
+    Java: '#b07219',
+    Shell: '#89e051',
+    C: '#555555',
+    Cpp: '#f34b7d', // changed from 'C++' to 'Cpp'
+    Go: '#00ADD8',
+    PHP: '#4F5D95',
+    Ruby: '#701516',
+    Vue: '#41b883',
+    SCSS: '#c6538c',
+    Swift: '#ffac45',
+    Rust: '#dea584',
+    Dart: '#00B4AB',
+    Kotlin: '#A97BFF',
+    // Add more as needed
+  };
+  // Map 'C++' to 'Cpp' for lookup
+  if (lang === 'C++') return colors.Cpp;
+  return colors[lang] || '#bbb';
+}
+function formatUpdated(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'yesterday';
+  if (diff < 7) return `${diff} days ago`;
+  if (diff < 30) return `last week`;
+  if (diff < 365) return `${Math.floor(diff / 30)} month${Math.floor(diff / 30) > 1 ? 's' : ''} ago`;
+  return `${Math.floor(diff / 365)} year${Math.floor(diff / 365) > 1 ? 's' : ''} ago`;
 }
