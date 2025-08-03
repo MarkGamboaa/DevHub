@@ -221,7 +221,7 @@ export default function App() {
                   </div>
                   {user.location && (
                     <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
-                      <img src="/location.svg" alt="Location" width={16} height={16} className="inline" style={{color: 'currentColor'}} />
+                      <img src="/location.svg" alt="Location" width={16} height={16} className={`inline ${theme === 'dark' ? 'filter invert' : ''}`} style={{color: 'currentColor'}} />
                       <span className="font-semibold">{user.location}</span>
                     </div>
                   )}
