@@ -45,7 +45,7 @@ export default function App() {
     const last = localStorage.getItem("lastUser");
     if (last) {
       setInput(last);
-      setUsername(last);
+      // Don't automatically set username - let user search manually
     }
     setTheme(getTheme());
   }, []);
