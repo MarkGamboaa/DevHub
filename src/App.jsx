@@ -40,13 +40,8 @@ export default function App() {
   const [reposLoading, setReposLoading] = useState(false); // <-- new state
   const cardRef = useRef(null);
 
-  // Load last searched user and theme
+  // Load theme only
   useEffect(() => {
-    const last = localStorage.getItem("lastUser");
-    if (last) {
-      setInput(last);
-      // Don't automatically set username - let user search manually
-    }
     setTheme(getTheme());
   }, []);
 
