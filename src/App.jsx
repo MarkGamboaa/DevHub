@@ -200,7 +200,7 @@ export default function App() {
               <div className="flex-1 min-w-0 mt-4 sm:mt-0 w-full relative">
                 <div className={`text-2xl font-bold truncate text-center md:text-left ${theme === 'dark' ? 'text-white' : c.text}`}>{user.name || <span className={c.muted}>No name</span>}</div>
                 <div className={`text-lg font-mono text-center md:text-left ${theme === 'dark' ? 'text-white' : c.primary} truncate`}>@{user.login}</div>
-                <div className={`mt-2 mb-4 ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>{user.bio || <span className="italic">No bio</span>}</div>
+                <div className={`mt-2 mb-4 text-center md:text-left ${theme === 'dark' ? 'text-[hsl(210,10%,88%)]' : c.muted}`}>{user.bio || <span className="italic">No bio</span>}</div>
                 <div className="flex flex-wrap gap-4 text-sm mb-2">
                   <div className={`flex items-center gap-1 px-3 py-1 rounded-lg border ${theme === 'dark' ? 'bg-[#161b22] border-[hsl(222,14%,25%)] text-[hsl(210,10%,88%)]' : 'bg-[hsl(210,16%,96%)] border-[hsl(210,16%,88%)] text-[hsl(210,10%,23%)]'}`}>
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className="inline"><path d="M12 20.5V3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
